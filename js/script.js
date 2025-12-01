@@ -8,9 +8,44 @@ setInterval(updateClock,1000); updateClock();
 function updateGreeting(){
   const el = document.getElementById("greeting");
   if(!el) return;
-  const h=new Date().getHours(); let msg="Welcome";
-  if(h<12) msg="Good morning, sir 🌅"; else if(h<18) msg="Good afternoon, sir ☀️"; else msg="Good evening, sir 🌙";
-  el.textContent=msg;
+  const h = new Date().getHours();
+  // load custom greetings if present
+  const saved = JSON.parse(localStorage.getItem('greetings') || '{}');
+  const morning = saved.morning || 'Good morning';
+  const afternoon = saved.afternoon || 'Good afternoon';
+  const evening = saved.evening || 'Good evening';
+  let msg = 'Welcome';
+  if(h < 12) msg = morning + ' 🌅';
+  else if(h < 18) msg = afternoon + ' ☀️';
+  else msg = evening + ' 🌙';
+  el.textContent = msg;
+}
+
+function loadSavedGreetings(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('greetings') || '{}');
+    if(window && document){
+      const m = document.getElementById('greetingMorning');
+      const a = document.getElementById('greetingAfternoon');
+      const e = document.getElementById('greetingEvening');
+      if(m) m.value = saved.morning || '';
+      if(a) a.value = saved.afternoon || '';
+      if(e) e.value = saved.evening || '';
+    }
+  }catch(e){}
+}
+
+function saveGreetingValues(){
+  const m = document.getElementById('greetingMorning');
+  const a = document.getElementById('greetingAfternoon');
+  const e = document.getElementById('greetingEvening');
+  const obj = {
+    morning: m?.value?.trim() || '',
+    afternoon: a?.value?.trim() || '',
+    evening: e?.value?.trim() || ''
+  };
+  localStorage.setItem('greetings', JSON.stringify(obj));
+  updateGreeting();
 }
 updateGreeting();
 
@@ -105,6 +140,18 @@ const closeConfig=document.getElementById('closeConfig');
 const previewGrid=document.getElementById('previewGrid');
 const bgInput=document.getElementById('backgroundInput');
 const saveBg=document.getElementById('saveBackground');
+const greetingMorningInput = document.getElementById('greetingMorning');
+const greetingAfternoonInput = document.getElementById('greetingAfternoon');
+const greetingEveningInput = document.getElementById('greetingEvening');
+const resetGreetingsBtn = document.getElementById('resetGreetings');
+
+// attach greeting input listeners (guarded)
+if(greetingMorningInput) greetingMorningInput.addEventListener('input', ()=>{ saveGreetingValues(); });
+if(greetingAfternoonInput) greetingAfternoonInput.addEventListener('input', ()=>{ saveGreetingValues(); });
+if(greetingEveningInput) greetingEveningInput.addEventListener('input', ()=>{ saveGreetingValues(); });
+if(resetGreetingsBtn) resetGreetingsBtn.addEventListener('click', ()=>{
+  localStorage.removeItem('greetings'); loadSavedGreetings(); updateGreeting();
+});
 
 function normalizeUrl(input){
   if(!input) return null;
@@ -134,7 +181,10 @@ function renderEditor(){
   if(!bookmarkEditor) return;
   bookmarkEditor.innerHTML='';
   bookmarks.forEach((b,i)=>{
-    const row=document.createElement('div');
+    const row=document.createElement('div'); row.className = 'bookmark-row'; row.draggable = true; row.dataset.index = String(i);
+    // drag handle
+    const handle = document.createElement('span'); handle.className = 'drag-handle'; handle.setAttribute('aria-hidden','true'); handle.textContent = '≡';
+    row.appendChild(handle);
     const nameInput = document.createElement('input');
     nameInput.type='text'; nameInput.value = b.name; nameInput.placeholder='Name'; nameInput.dataset.index = i; nameInput.className='edit-name';
 
@@ -148,11 +198,33 @@ function renderEditor(){
     }
 
     const del = document.createElement('button'); del.dataset.index = i; del.className='deleteBookmark'; del.type = 'button'; del.textContent = 'Delete';
-
     row.appendChild(nameInput); row.appendChild(urlInput); row.appendChild(select); row.appendChild(del);
+
+    // Drag & Drop handlers
+    row.addEventListener('dragstart', (e)=>{
+      e.dataTransfer.setData('text/plain', String(i));
+      e.dataTransfer.effectAllowed = 'move';
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      document.querySelectorAll('.bookmark-row').forEach(r=>r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e)=>{ e.preventDefault(); row.classList.add('drag-over'); e.dataTransfer.dropEffect = 'move'; });
+    row.addEventListener('dragleave', ()=>{ row.classList.remove('drag-over'); });
+    row.addEventListener('drop', (e)=>{ e.preventDefault(); row.classList.remove('drag-over'); const from = Number(e.dataTransfer.getData('text/plain')); const to = Number(row.dataset.index); if(Number.isFinite(from) && from!==to){ reorderBookmarks(from, to); } });
+
     bookmarkEditor.appendChild(row);
   });
   renderPreview();
+}
+
+function reorderBookmarks(from, to){
+  if(from<0 || to<0 || from===to) return;
+  const item = bookmarks.splice(from,1)[0];
+  bookmarks.splice(to,0,item);
+  localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+  renderEditor(); renderBookmarks();
 }
 
 function renderPreview(){
@@ -180,6 +252,7 @@ function _getFocusable(el){
 function openConfigModal(){
   renderEditor();
   renderGallery && renderGallery();
+  loadSavedGreetings && loadSavedGreetings();
   if(!configModal) return;
   _previouslyFocused = document.activeElement;
   configModal.classList.add('show');

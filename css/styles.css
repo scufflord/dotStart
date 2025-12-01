@@ -48,6 +48,11 @@ button:hover{transform:scale(1.05); background:var(--fg);}
 #themeSelector{padding:0.5rem 1rem; border-radius:8px; border:none; background:var(--secondary); font-size:1rem; cursor:pointer; text-align:center;}
 #themeSelector option{text-align:center;}
 
+/* Footer link styling: inherit page color, underlined for affordance (not default blue) */
+.bottom-center a{ color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; text-decoration-color: rgba(255,255,255,0.14); }
+.bottom-center a:visited{ color: inherit; }
+.bottom-center a:hover{ opacity: 0.95; }
+
 /* Elements previously inline-styled */
 #previewGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1vw;margin-bottom:1rem;}
 #backgroundInput{width:100%;padding:0.5rem;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:inherit}
@@ -80,6 +85,19 @@ button:hover{transform:scale(1.05); background:var(--fg);}
 .bg-thumb img{width:100%; height:72px; object-fit:cover; display:block; transition: transform 180ms ease;}
 .bg-thumb:hover img{transform:scale(1.04)}
 .bg-thumb.selected{box-shadow:0 6px 18px rgba(0,0,0,0.45); outline:2px solid var(--accent);} 
+
+/* Modal grid layout for preview + editor */
+.modal-grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start;}
+@media (max-width:900px){ .modal-grid{grid-template-columns:1fr; } }
+
+/* Bookmark editor rows with drag handle */
+.bookmark-row{display:flex; gap:0.6rem; align-items:center; padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.02); margin-bottom:0.5rem;}
+.bookmark-row.drag-over{outline:2px dashed rgba(255,255,255,0.08);}
+.drag-handle{cursor:grab; padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.03); color:var(--fg); font-weight:600; user-select:none}
+.bookmark-row.dragging{opacity:0.6}
+
+/* ensure selects in editor inherit theme color */
+.bookmark-row select, .bookmark-row input{color:var(--fg); background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04)}
 .bg-upload-row{display:flex; gap:0.5rem; align-items:center; margin-top:0.5rem;}
 #bgUpload{padding:0.25rem;}
 #clearBackground{padding:0.5rem 0.75rem; border-radius:6px; border:none; background:rgba(255,255,255,0.06); color:inherit; cursor:pointer}

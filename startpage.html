@@ -27,7 +27,7 @@
 
 <div class="bottom-bar">
   <div class="bottom-left"><button id="configButton" aria-haspopup="dialog" aria-controls="configModal" aria-expanded="false" aria-label="Open configuration">Config ⚙️</button></div>
-  <div class="bottom-center"><span>© 2025 Scufflord</span></div>
+  <div class="bottom-center"><span>© 2025 <a href="https://github.com/scufflord/Startpage" target="_blank" rel="noopener noreferrer">Scufflord</a></span></div>
   <div class="bottom-right">
     <select id="themeSelector" aria-label="Theme selector">
       <option value="gruvbox">Gruvbox</option>
@@ -42,11 +42,22 @@
 
 <div id="configModal" aria-hidden="true" role="dialog" aria-label="Configuration modal">
   <h2>Edit Bookmarks</h2>
-  <h3>Live Preview</h3>
-  <div id="previewGrid"></div>
-  <div id="bookmarkEditor"></div>
-  <button id="addBookmark" aria-label="Add bookmark">Add Bookmark</button>
-  <button id="saveBookmarks" aria-label="Save bookmarks">Save Changes</button>
+  <div class="modal-grid">
+    <div class="section">
+      <h3>Live Preview</h3>
+      <div id="previewGrid"></div>
+    </div>
+    <div class="section">
+      <h3>Edit Bookmarks</h3>
+      <div id="bookmarkEditor"></div>
+      <div class="actions-row" style="margin-top:0.5rem;">
+        <button id="addBookmark" aria-label="Add bookmark">Add Bookmark</button>
+      </div>
+    </div>
+  </div>
+  <div class="actions-row" style="margin-top:1rem;">
+    <button id="saveBookmarks" aria-label="Save bookmarks">Save Changes</button>
+  </div>
   <h3>Background Image</h3>
   <label for="backgroundInput" class="sr-only">Background image URL</label>
   <input type="text" id="backgroundInput" placeholder="Paste image URL...">
@@ -75,6 +86,21 @@
     <label for="var-secondary">--secondary<input id="var-secondary" type="color" data-var="--secondary"></label>
     <label for="var-bookmark-bg">--bookmark-bg<input id="var-bookmark-bg" type="color" data-var="--bookmark-bg"></label>
     <label for="var-bookmark-hover-bg">--bookmark-hover-bg<input id="var-bookmark-hover-bg" type="color" data-var="--bookmark-hover-bg"></label>
+  </div>
+  <h3>Greeting Texts</h3>
+  <div class="section">
+    <label for="greetingMorning">Morning greeting
+      <input id="greetingMorning" type="text" placeholder="Good morning" aria-label="Morning greeting">
+    </label>
+    <label for="greetingAfternoon">Afternoon greeting
+      <input id="greetingAfternoon" type="text" placeholder="Good afternoon" aria-label="Afternoon greeting">
+    </label>
+    <label for="greetingEvening">Evening greeting
+      <input id="greetingEvening" type="text" placeholder="Good evening" aria-label="Evening greeting">
+    </label>
+    <div class="actions-row" style="margin-top:0.5rem;">
+      <button id="resetGreetings" type="button" aria-label="Reset greetings">Reset to defaults</button>
+    </div>
   </div>
   <button id="closeConfig" aria-label="Close configuration">Close</button>
 </div>
