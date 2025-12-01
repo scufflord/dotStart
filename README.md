@@ -4,7 +4,7 @@ Minimal personal startpage with theme support, bookmarks, and configurable backg
 
 Quick start
 
-- Open `startpage.html` in your browser (or serve the folder with a simple static server).
+- Open `index.html` in your browser (or serve the folder with a simple static server).
 - Customize themes via the dropdown or the custom theme editor in the Config modal.
 - Bookmarks are editable in the Config modal and persisted to `localStorage`.
 

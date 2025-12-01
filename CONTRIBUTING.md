@@ -8,7 +8,7 @@ Thanks for considering contributing! A few quick guidelines:
 
 Development
 
-You can preview the page by opening `startpage.html` in your browser. For quick static serving:
+You can preview the page by opening `index.html` in your browser. For quick static serving:
 
 ```bash
 python3 -m http.server 8000
