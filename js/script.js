@@ -14,7 +14,7 @@ function updateGreeting(){
   const morning = saved.morning || 'Good morning';
   const afternoon = saved.afternoon || 'Good afternoon';
   const evening = saved.evening || 'Good evening';
-  let msg = 'Welcome';
+  let msg = 'dotStart';
   if(h < 12) msg = morning + ' 🌅';
   else if(h < 18) msg = afternoon + ' ☀️';
   else msg = evening + ' 🌙';
