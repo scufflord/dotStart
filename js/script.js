@@ -121,6 +121,89 @@ if(themeSelector){
   });
 }
 
+// ---------------- Search Engine (configurable) ----------------
+const defaultSearchEngines = {
+  google: 'https://www.google.com/search?q={q}',
+  ddg: 'https://duckduckgo.com/?q={q}',
+  bing: 'https://www.bing.com/search?q={q}',
+  startpage: 'https://www.startpage.com/do/search?q={q}',
+  brave: 'https://search.brave.com/search?q={q}'
+};
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+const searchEngineSelect = document.getElementById('searchEngineSelect');
+const searchEngineTemplate = document.getElementById('searchEngineTemplate');
+
+function loadSavedSearchEngine(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('searchEngine') || '{}');
+    const engine = saved.engine || 'google';
+    const template = saved.template || defaultSearchEngines[engine] || defaultSearchEngines.google;
+    if(searchEngineSelect) searchEngineSelect.value = engine;
+    if(searchEngineTemplate) searchEngineTemplate.value = template;
+    applySearchEngineToUI(engine, template);
+  }catch(e){}
+}
+
+function saveSearchEngine(engine, template){
+  if(!template || template.indexOf('{q}') === -1){
+    alert('Search template must include {q} where the query goes.');
+    return false;
+  }
+  localStorage.setItem('searchEngine', JSON.stringify({engine: engine, template: template}));
+  applySearchEngineToUI(engine, template);
+  return true;
+}
+
+function applySearchEngineToUI(engine, template){
+  if(searchInput){
+    const name = engine === 'custom' ? 'Search' : (engine[0].toUpperCase()+engine.slice(1));
+    searchInput.placeholder = `Search ${name}...`;
+  }
+}
+
+if(searchEngineSelect){
+  searchEngineSelect.addEventListener('change', (e)=>{
+    const val = e.target.value;
+    const tmpl = defaultSearchEngines[val] || '';
+    if(searchEngineTemplate){
+      if(val !== 'custom') searchEngineTemplate.value = tmpl;
+    }
+    saveSearchEngine(val, searchEngineTemplate ? searchEngineTemplate.value.trim() : tmpl);
+  });
+}
+if(searchEngineTemplate){
+  searchEngineTemplate.addEventListener('input', (e)=>{
+    const v = e.target.value.trim();
+    if(searchEngineSelect){
+      const preset = Object.keys(defaultSearchEngines).find(k => defaultSearchEngines[k] === v);
+      if(preset) searchEngineSelect.value = preset;
+      else searchEngineSelect.value = 'custom';
+    }
+    if(v.indexOf('{q}') !== -1) saveSearchEngine(searchEngineSelect ? searchEngineSelect.value : 'custom', v);
+  });
+}
+
+if(searchForm){
+  searchForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+    if(!q) return;
+    const saved = JSON.parse(localStorage.getItem('searchEngine') || '{}');
+    const template = saved.template || defaultSearchEngines[saved.engine] || defaultSearchEngines.google;
+    let url = template;
+    if(template.indexOf('{q}') !== -1) url = template.replace('{q}', encodeURIComponent(q));
+    else {
+      url = template + (template.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(q);
+    }
+    // navigate in same tab
+    window.location.href = url;
+  });
+}
+
+// load saved on startup
+loadSavedSearchEngine();
+
 // ---------------- Bookmarks ----------------
 let bookmarks = JSON.parse(localStorage.getItem('bookmarks')) || [
   {name:"YouTube", url:"https://www.youtube.com"},
@@ -767,6 +850,31 @@ function showToast(message, undoCallback, timeout=6000){
   toastUndo.addEventListener('click', onUndo, {once:true});
 }
 
+// ---------------- Import / Export Settings ----------------
+function exportSettings(){
+  try{
+    const keys = ['selectedTheme','customTheme','backgroundURL','greetings','weatherLocation','autoThemeEnabled','derivedTheme'];
+    const out = {};
+    out.bookmarks = bookmarks || [];
+    keys.forEach(k=>{ try{ const v = localStorage.getItem(k); if(v !== null) out[k] = JSON.parse(v); }catch(e){} });
+    const json = JSON.stringify(out, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `startpage-export-${(new Date()).toISOString().slice(0,10)}.json`; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    showToast('Export downloaded');
+  }catch(err){ console.error(err); alert('Export failed'); }
+}
+
+function importFromFile(file){
+  if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ try{ const obj = JSON.parse(ev.target.result); applyImportedSettings(obj); setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 700); }catch(e){ alert('Invalid JSON file'); } }; reader.onerror = function(){ alert('Failed to read file'); }; reader.readAsText(file);
+}
+
+// wire up controls (guarded)
+try{
+  const exportBtn = document.getElementById('exportSettings'); if(exportBtn) exportBtn.addEventListener('click', ()=>{ exportSettings(); });
+  const importFile = document.getElementById('importFile'); if(importFile) importFile.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0]; if(f) importFromFile(f); });
+}catch(e){}
+
 if(bgUpload){
   bgUpload.addEventListener('change', async (e)=>{
     const file = e.target.files && e.target.files[0];
@@ -839,6 +947,370 @@ function updateDynamicTextColors(){
 // Initial render
 renderBookmarks();
 updateDynamicTextColors();
+
+// ========== WIDGETS: TODO LIST =========
+const todoInput = document.getElementById('todoInput');
+const todoAdd = document.getElementById('todoAdd');
+const todoList = document.getElementById('todoList');
+const todoWidget = document.getElementById('todoWidget');
+const TODOS_KEY = 'todos';
+
+function loadTodos(){
+  try{ return JSON.parse(localStorage.getItem(TODOS_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+
+function saveTodos(todos){
+  localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
+}
+
+function renderTodos(){
+  const todos = loadTodos();
+  todoList.innerHTML = '';
+  todos.forEach((todo, idx)=>{
+    const li = document.createElement('li');
+    li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = todo.completed;
+    checkbox.setAttribute('aria-label', `Todo: ${todo.text}`);
+    checkbox.addEventListener('change', ()=>{
+      todos[idx].completed = checkbox.checked;
+      saveTodos(todos);
+      renderTodos();
+    });
+    const span = document.createElement('span');
+    span.textContent = todo.text;
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'todo-item-delete';
+    delBtn.textContent = '×';
+    delBtn.setAttribute('aria-label', `Delete: ${todo.text}`);
+    delBtn.addEventListener('click', ()=>{
+      todos.splice(idx, 1);
+      saveTodos(todos);
+      renderTodos();
+    });
+    li.appendChild(checkbox);
+    li.appendChild(span);
+    li.appendChild(delBtn);
+    todoList.appendChild(li);
+  });
+}
+
+function addTodo(text){
+  const trimmed = text.trim();
+  if(!trimmed) return;
+  const todos = loadTodos();
+  todos.push({text: trimmed, completed: false});
+  saveTodos(todos);
+  renderTodos();
+  if(todoInput) todoInput.value = '';
+}
+
+if(todoAdd) todoAdd.addEventListener('click', ()=>{ addTodo(todoInput?.value || ''); });
+if(todoInput) todoInput.addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter'){ addTodo(todoInput.value); }
+});
+
+renderTodos();
+
+// ========== WIDGETS: NEWS FEED (RSS) =========
+const newsFeed = document.getElementById('newsFeed');
+const newsWidget = document.getElementById('newsWidget');
+const newsRefresh = document.getElementById('newsRefresh');
+const NEWS_CACHE_KEY = 'newsCache';
+const NEWS_CACHE_EXPIRY = 3600000; // 1 hour in ms
+
+// Top 10 news/tech RSS feeds in America
+const RSS_FEEDS = [
+  'https://feeds.reuters.com/reuters/technologyNews',
+  'https://feeds.bloomberg.com/markets/news.rss',
+  'https://feeds.cnbc.com/cnbc/world-news',
+  'https://feeds.washingtonpost.com/rss/politics',
+  'https://feeds.bloomberg.com/technology/news.rss',
+  'https://feeds.theguardian.com/world',
+  'https://feeds.nytimes.com/services/xml/rss/nyt/Technology.xml',
+  'https://feeds.arstechnica.com/arstechnica/feed',
+  'https://feeds.theverge.com/feed',
+  'https://techcrunch.com/feed/'
+];
+
+async function fetchRSSFeed(url){
+  try{
+    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {
+      headers: { 'Accept': 'application/rss+xml,application/xml,text/xml' }
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/xml');
+    if(doc.getElementsByTagName('parsererror').length) throw new Error('Parse error');
+    
+    const items = [];
+    const entries = doc.querySelectorAll('item, entry');
+    entries.forEach(entry=>{
+      const titleEl = entry.querySelector('title');
+      const linkEl = entry.querySelector('link');
+      const pubEl = entry.querySelector('pubDate, published');
+      const sourceEl = entry.querySelector('source > title');
+      
+      const title = titleEl?.textContent?.trim() || 'Untitled';
+      let link = '';
+      if(linkEl?.tagName === 'link'){
+        link = linkEl.getAttribute('href') || linkEl.textContent?.trim() || '';
+      } else {
+        link = linkEl?.textContent?.trim() || '';
+      }
+      const pubDate = pubEl?.textContent ? new Date(pubEl.textContent).getTime() : Date.now();
+      const source = sourceEl?.textContent?.trim() || url.split('/')[2] || 'News';
+      
+      if(title && link) items.push({title, link, pubDate, source});
+    });
+    return items;
+  }catch(err){
+    console.warn('Failed to fetch RSS:', url, err);
+    return [];
+  }
+}
+
+async function fetchAllNews(){
+  try{
+    newsFeed.innerHTML = '<div class="news-loading">Loading news...</div>';
+    
+    const cached = localStorage.getItem(NEWS_CACHE_KEY);
+    if(cached){
+      try{
+        const {data, timestamp} = JSON.parse(cached);
+        if(Date.now() - timestamp < NEWS_CACHE_EXPIRY){
+          renderNews(data);
+          return;
+        }
+      }catch(e){}
+    }
+    
+    const allArticles = [];
+    const promises = RSS_FEEDS.map(feed=>fetchRSSFeed(feed).then(items=>allArticles.push(...items)));
+    await Promise.all(promises);
+    
+    // deduplicate by title + sort by date (newest first)
+    const seen = new Set();
+    const unique = allArticles.filter(a=>{
+      const key = a.title.toLowerCase();
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a,b)=>b.pubDate - a.pubDate).slice(0,15);
+    
+    // cache the results
+    localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({
+      data: unique,
+      timestamp: Date.now()
+    }));
+    
+    renderNews(unique);
+  }catch(err){
+    console.error('News fetch error:', err);
+    newsFeed.innerHTML = '<div class="news-error">Unable to load news feed. Please try again later.</div>';
+  }
+}
+
+function renderNews(articles){
+  if(!articles || articles.length === 0){
+    newsFeed.innerHTML = '<div class="news-error">No articles available.</div>';
+    return;
+  }
+  
+  newsFeed.innerHTML = '';
+  articles.forEach(article=>{
+    const div = document.createElement('div');
+    div.className = 'news-item';
+    
+    const titleEl = document.createElement('h4');
+    titleEl.className = 'news-item-title';
+    const link = document.createElement('a');
+    link.href = article.link;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = article.title;
+    titleEl.appendChild(link);
+    
+    const sourceEl = document.createElement('p');
+    sourceEl.className = 'news-item-source';
+    const date = new Date(article.pubDate);
+    const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    sourceEl.textContent = `${article.source} • ${timeStr}`;
+    
+    div.appendChild(titleEl);
+    div.appendChild(sourceEl);
+    newsFeed.appendChild(div);
+  });
+}
+
+if(newsRefresh) newsRefresh.addEventListener('click', ()=>{ localStorage.removeItem(NEWS_CACHE_KEY); fetchAllNews(); });
+
+// Load news on startup
+fetchAllNews();
+
+// ========== WIDGETS: DRAG & LOCK =========
+const widgetsContainer = document.getElementById('widgetsContainer');
+const WIDGET_POSITIONS_KEY = 'widgetPositions';
+const WIDGET_LOCK_KEY = 'widgetsLocked';
+const WIDGET_VISIBILITY_KEY = 'widgetVisibility';
+
+let _draggedWidget = null;
+let _widgetsLocked = localStorage.getItem(WIDGET_LOCK_KEY) === '1';
+
+function loadWidgetPositions(){
+  try{ return JSON.parse(localStorage.getItem(WIDGET_POSITIONS_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+
+function saveWidgetPositions(){
+  const positions = {};
+  document.querySelectorAll('.widget').forEach(w=>{
+    const id = w.id;
+    if(w.style.position === 'fixed'){
+      positions[id] = {
+        left: parseFloat(w.style.left) || 0,
+        top: parseFloat(w.style.top) || 0,
+        width: parseFloat(w.style.width) || 0
+      };
+    }
+  });
+  localStorage.setItem(WIDGET_POSITIONS_KEY, JSON.stringify(positions));
+}
+
+function applyWidgetPositions(){
+  const positions = loadWidgetPositions();
+  document.querySelectorAll('.widget').forEach(w=>{
+    const id = w.id;
+    const pos = positions[id];
+    if(pos && typeof pos.left === 'number' && typeof pos.top === 'number'){
+      w.style.position = 'fixed';
+      w.style.left = pos.left + 'px';
+      w.style.top = pos.top + 'px';
+      w.style.width = pos.width + 'px';
+      w.style.zIndex = '100';
+      w.style.margin = '0';
+    }
+  });
+}
+
+function setupWidgetDragging(){
+  document.querySelectorAll('.widget-drag-handle').forEach(handle=>{
+    handle.addEventListener('mousedown', (e)=>{
+      if(_widgetsLocked) return;
+      const widget = handle.closest('.widget');
+      if(!widget) return;
+      
+      _draggedWidget = widget;
+      widget.classList.add('dragging');
+      
+      // Convert to fixed positioning if not already
+      if(widget.style.position !== 'fixed'){
+        const rect = widget.getBoundingClientRect();
+        widget.style.position = 'fixed';
+        widget.style.left = rect.left + 'px';
+        widget.style.top = rect.top + 'px';
+        widget.style.width = rect.width + 'px';
+        widget.style.zIndex = '100';
+      }
+      
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startLeft = parseFloat(widget.style.left) || 0;
+      const startTop = parseFloat(widget.style.top) || 0;
+      
+      function onMouseMove(ev){
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        widget.style.left = (startLeft + dx) + 'px';
+        widget.style.top = (startTop + dy) + 'px';
+      }
+      
+      function onMouseUp(){
+        if(!_draggedWidget) return;
+        _draggedWidget.classList.remove('dragging');
+        saveWidgetPositions();
+        _draggedWidget = null;
+        
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      e.preventDefault();
+    });
+  });
+}
+
+function setWidgetsLocked(locked){
+  _widgetsLocked = locked;
+  localStorage.setItem(WIDGET_LOCK_KEY, locked ? '1' : '0');
+  document.querySelectorAll('.widget').forEach(w=>{
+    if(locked) w.classList.add('locked');
+    else w.classList.remove('locked');
+  });
+}
+
+function toggleWidgetVisibility(widgetId, visible){
+  const widget = document.getElementById(widgetId);
+  if(widget) widget.style.display = visible ? '' : 'none';
+  
+  const visibility = JSON.parse(localStorage.getItem(WIDGET_VISIBILITY_KEY) || '{}');
+  visibility[widgetId] = visible;
+  localStorage.setItem(WIDGET_VISIBILITY_KEY, JSON.stringify(visibility));
+}
+
+function loadWidgetVisibility(){
+  const visibility = JSON.parse(localStorage.getItem(WIDGET_VISIBILITY_KEY) || '{}');
+  // default to showing both
+  const todoVisible = visibility.todoWidget !== false;
+  const newsVisible = visibility.newsWidget !== false;
+  
+  toggleWidgetVisibility('todoWidget', todoVisible);
+  toggleWidgetVisibility('newsWidget', newsVisible);
+  
+  const todoToggle = document.getElementById('todoWidgetToggle');
+  const newsToggle = document.getElementById('newsWidgetToggle');
+  if(todoToggle) todoToggle.checked = todoVisible;
+  if(newsToggle) newsToggle.checked = newsVisible;
+}
+
+setupWidgetDragging();
+loadWidgetVisibility();
+applyWidgetPositions();
+
+// Set up widget visibility toggles in modal
+const todoWidgetToggle = document.getElementById('todoWidgetToggle');
+const newsWidgetToggle = document.getElementById('newsWidgetToggle');
+const widgetLockToggle = document.getElementById('widgetLockToggle');
+
+if(todoWidgetToggle){
+  todoWidgetToggle.addEventListener('change', ()=>{
+    toggleWidgetVisibility('todoWidget', todoWidgetToggle.checked);
+  });
+}
+
+if(newsWidgetToggle){
+  newsWidgetToggle.addEventListener('change', ()=>{
+    toggleWidgetVisibility('newsWidget', newsWidgetToggle.checked);
+  });
+}
+
+if(widgetLockToggle){
+  widgetLockToggle.checked = _widgetsLocked;
+  widgetLockToggle.addEventListener('change', ()=>{
+    setWidgetsLocked(widgetLockToggle.checked);
+  });
+}
+
+// Apply initial lock state
+if(_widgetsLocked){
+  document.querySelectorAll('.widget').forEach(w=> w.classList.add('locked'));
+}
 
 // Apply saved background and auto-theme after all helpers/constants
 // have been declared (avoids temporal-dead-zone ReferenceErrors).

@@ -68,6 +68,13 @@ I got bored one night and wanted a custom start page for my browser. I got overw
 
 **Note**: Keyboard shortcuts are disabled while typing in search, bookmark editor, or modal input fields.
 
+### 🔎 Search Engine (Configurable)
+- **Choose engine**: Pick from Google, DuckDuckGo, Bing, Startpage, Brave, or select **Custom** to provide your own template
+- **Template syntax**: Use the placeholder `{q}` where the query should be inserted. Example: `https://duckduckgo.com/?q={q}`
+- **Persistence**: The chosen engine and template are saved to `localStorage` and applied on page load
+- **Behavior**: The main search box uses the configured template and navigates to the resulting search URL in the same tab
+- **Validation**: Custom templates must include `{q}`; the Config UI will warn if missing
+
 ### ♿ Accessibility
 - **Semantic HTML**: Proper use of headings, sections, and landmarks
 - **ARIA labels**: All buttons and interactive elements are labeled
@@ -130,6 +137,11 @@ All customization happens in the **Config modal**:
    - **Greetings**: Set custom morning/afternoon/evening messages
    - **Weather**: Configure location or use geolocation
    - **Auto-theme**: Toggle automatic color extraction from backgrounds
+
+### Import / Export
+- **Export settings**: Export your bookmarks and settings to a JSON file from the Config modal.
+- **Import via file**: Upload a previously exported JSON file to restore settings locally.
+- **What is exported**: Bookmarks, selected theme, custom theme values, background selection, greetings, weather location, and auto-theme flag.
 
 ## Contributing
 
