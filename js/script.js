@@ -180,6 +180,8 @@ const greetingAfternoonInput = document.getElementById('greetingAfternoon');
 const greetingEveningInput = document.getElementById('greetingEvening');
 const resetGreetingsBtn = document.getElementById('resetGreetings');
 
+// Note: header will remain fixed; content will scroll beneath it (no auto-hide)
+
 // attach greeting input listeners (guarded)
 if(greetingMorningInput) greetingMorningInput.addEventListener('input', ()=>{ saveGreetingValues(); });
 if(greetingAfternoonInput) greetingAfternoonInput.addEventListener('input', ()=>{ saveGreetingValues(); });
@@ -317,6 +319,9 @@ function openConfigModal(){
   const focusables = _getFocusable(configModal);
   if(focusables.length) focusables[0].focus();
 
+  // attach modal-body scroll listener to update floating close button position
+  try{ if(modalBody) { modalBody.addEventListener('scroll', _onModalBodyScroll, {passive:true}); _onModalBodyScroll(); } }catch(e){}
+
   document.addEventListener('keydown', _handleKeydown);
 }
 
@@ -326,8 +331,49 @@ function closeConfigModal(){
   configModal.setAttribute('aria-hidden','true');
   if(configButton) configButton.setAttribute('aria-expanded','false');
   document.removeEventListener('keydown', _handleKeydown);
+  try{ if(modalBody) modalBody.removeEventListener('scroll', _onModalBodyScroll); }catch(e){}
+  try{ if(modalCloseFloat) modalCloseFloat.classList.remove('scrolled'); }catch(e){}
   if(_previouslyFocused && typeof _previouslyFocused.focus === 'function') _previouslyFocused.focus();
 }
+
+// ---------------- Hotkeys: Control + 1..9 and 0 (for 10) open bookmarks ----------------
+function _isTypingInForm(){
+  const a = document.activeElement;
+  if(!a) return false;
+  const tag = a.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || a.isContentEditable) return true;
+  if(a.getAttribute && a.getAttribute('role') === 'textbox') return true;
+  return false;
+}
+
+document.addEventListener('keydown', (e)=>{
+  try{
+    // only respond to Control (no Cmd/meta) per user preference
+    if(!e.ctrlKey) return;
+    if(e.altKey) return; // ignore Alt combinations
+    const key = String(e.key || '');
+    if(!/^[0-9]$/.test(key)) return;
+    if(_isTypingInForm()) return;
+    // map '0' -> index 9 (bookmark 10)
+    const idx = (key === '0') ? 9 : (Number(key) - 1);
+    if(idx < 0 || idx >= bookmarks.length) return;
+    const b = bookmarks[idx];
+    if(!b || !b.url) return;
+    const normalized = normalizeUrl(b.url) || b.url;
+    // open safely using an anchor click to set rel="noopener noreferrer"
+    const a = document.createElement('a');
+    a.href = normalized;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // show a short toast confirming the hotkey action (uses existing showToast)
+    try{ showToast('Opened ' + (b.name || normalized) + ' (' + key + ')', null, 2000); }catch(ex){}
+    e.preventDefault();
+  }catch(err){ /* swallow */ }
+});
 
 function _handleKeydown(e){
   if(!configModal || !configModal.classList.contains('show')) return;
@@ -354,6 +400,18 @@ if(configButton){
 if(closeConfig){
   closeConfig.addEventListener('click',()=>{ closeConfigModal(); });
 }
+// floating close button and scroll-linked movement
+const modalCloseFloat = document.getElementById('modalCloseFloat');
+const modalBody = document.querySelector('#configModal .modal-body');
+function _onModalBodyScroll(){
+  try{
+    if(!modalBody || !modalCloseFloat) return;
+    const st = modalBody.scrollTop || 0;
+    if(st > 30) modalCloseFloat.classList.add('scrolled');
+    else modalCloseFloat.classList.remove('scrolled');
+  }catch(e){}
+}
+if(modalCloseFloat){ modalCloseFloat.addEventListener('click', ()=>{ closeConfigModal(); }); }
 
 // ---------------- Bookmark actions ----------------
 if(addBookmark){ addBookmark.addEventListener('click',()=>{bookmarks.push({name:"New", url:"https://"}); renderEditor();}); }

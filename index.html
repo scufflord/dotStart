@@ -10,7 +10,8 @@
 <body>
 <div class="translucent-container">
   <div class="container">
-    <center><h1>Welcome</h1></center>
+    <center><h1 class="typing">Welcome</h1></center>
+    <div class="page-rest">
     <form class="search-box" action="https://www.google.com/search" method="GET" role="search" aria-label="Search">
       <label for="searchInput" class="sr-only">Search Google</label>
       <input id="searchInput" type="text" name="q" placeholder="Search Google..." autocomplete="off" aria-label="Search query" />
@@ -22,6 +23,7 @@
       <div id="weather" class="weather" aria-live="polite">Loading weather...</div>
     </div>
     <div class="bookmarks-grid"></div>
+    </div>
   </div>
 </div>
  
@@ -41,8 +43,11 @@
 </div>
 
 <div id="configModal" aria-hidden="true" role="dialog" aria-label="Configuration modal">
-  <h2>Edit Bookmarks</h2>
-  <div class="modal-grid">
+  <!-- floating close button (replaces the full header) -->
+  <button id="modalCloseFloat" class="modal-close-floating" aria-label="Close configuration">×</button>
+  <div class="modal-body">
+    <h2 class="modal-title">Edit Bookmarks</h2>
+    <div class="modal-grid">
     <div class="section">
       <h3>Live Preview</h3>
       <div id="previewGrid"></div>
@@ -115,7 +120,7 @@
       <button id="resetGreetings" type="button" aria-label="Reset greetings">Reset to defaults</button>
     </div>
   </div>
-  <button id="closeConfig" aria-label="Close configuration">Close</button>
+  </div>
 </div>
 
 <script src="js/script.js" defer></script>
