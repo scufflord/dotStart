@@ -6,6 +6,8 @@
 <title>Startpage</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<!-- Small inline favicon to avoid 404 when serving locally -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23282728'/%3E%3Ctext x='50' y='60' font-size='56' text-anchor='middle' fill='%23ebdbb2' font-family='Arial,Helvetica,sans-serif'%3E•%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <div class="translucent-container">
@@ -56,7 +58,10 @@
 </div>
  
 <div class="bottom-bar">
-  <div class="bottom-left"><button id="configButton" aria-haspopup="dialog" aria-controls="configModal" aria-expanded="false" aria-label="Open configuration">Config ⚙️</button></div>
+  <div class="bottom-left">
+    <button id="configButton" aria-haspopup="dialog" aria-controls="configModal" aria-expanded="false" aria-label="Open configuration">Config ⚙️</button>
+    <button id="widgetLockToggle" aria-label="Toggle widget lock" title="Lock/unlock widget positions">🔓</button>
+  </div>
   <div class="bottom-center"><span>© 2025 <a href="https://github.com/scufflord/Startpage" target="_blank" rel="noopener noreferrer">Scufflord</a></span></div>
   <div class="bottom-right">
     <select id="themeSelector" aria-label="Theme selector">
@@ -187,23 +192,18 @@
         <input type="checkbox" id="newsWidgetToggle" aria-label="Toggle news widget">
         <span>Show News Widget</span>
       </label>
-      <label style="display:flex;align-items:center;gap:0.5rem;">
-        <input type="checkbox" id="widgetLockToggle" aria-label="Lock widgets" title="Lock widgets to prevent accidental repositioning">
-        <span>Lock Widget Positions</span>
-      </label>
     </div>
   </div>
   </div>
 </div>
 
-<script src="js/script.js" defer></script>
-</body>
+<script type="module" src="js/script.js" defer></script>
 
 <!-- Toast for non-blocking actions (undo) -->
 <div id="toast" class="toast" aria-live="polite" aria-atomic="true">
   <span id="toastMsg"></span>
   <button id="toastUndo" class="toast-undo" aria-label="Undo">Undo</button>
 </div>
-</html>
+
 </body>
 </html>
