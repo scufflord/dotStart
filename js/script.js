@@ -27,6 +27,121 @@ function updateClock(){
 }
 setInterval(updateClock,1000); updateClock();
 
+// ---------------- Search form handler ----------------
+const searchEngines = {
+  google: 'https://www.google.com/search?q={q}',
+  ddg: 'https://duckduckgo.com/?q={q}',
+  bing: 'https://www.bing.com/search?q={q}',
+  startpage: 'https://www.startpage.com/do/search?q={q}',
+  brave: 'https://search.brave.com/search?q={q}',
+  custom: ''
+};
+
+const searchEngineFavicons = {
+  google: 'https://www.google.com/favicon.ico',
+  ddg: 'https://duckduckgo.com/favicon.ico',
+  bing: 'https://www.bing.com/favicon.ico',
+  startpage: 'https://www.startpage.com/favicon.ico',
+  brave: 'https://brave.com/static-assets/images/brave-favicon.png',
+  custom: ''
+};
+
+function updateSearchFavicon(){
+  const faviconImg = document.getElementById('searchEngineFavicon');
+  if(!faviconImg) return;
+  
+  const engineSelect = document.getElementById('searchEngineSelect');
+  const selected = engineSelect?.value || 'google';
+  
+  if(selected === 'custom'){
+    const templateInput = document.getElementById('searchEngineTemplate');
+    const template = templateInput?.value?.trim() || '';
+    if(template){
+      try{
+        const url = new URL(template.replace('{q}', ''));
+        faviconImg.src = `${url.origin}/favicon.ico`;
+      }catch(e){
+        faviconImg.src = '';
+      }
+    }else{
+      faviconImg.src = '';
+    }
+  }else{
+    faviconImg.src = searchEngineFavicons[selected] || '';
+  }
+}
+
+function getSearchTemplate(){
+  const engineSelect = document.getElementById('searchEngineSelect');
+  const templateInput = document.getElementById('searchEngineTemplate');
+  const selected = engineSelect?.value || 'google';
+  
+  if(selected === 'custom'){
+    const custom = templateInput?.value?.trim() || '';
+    return custom || searchEngines.google;
+  }
+  return searchEngines[selected] || searchEngines.google;
+}
+
+function saveSearchEngine(){
+  const engineSelect = document.getElementById('searchEngineSelect');
+  const templateInput = document.getElementById('searchEngineTemplate');
+  if(engineSelect){
+    localStorage.setItem('searchEngine', engineSelect.value);
+  }
+  if(templateInput){
+    localStorage.setItem('searchTemplate', templateInput.value);
+  }
+}
+
+function loadSearchEngine(){
+  const engineSelect = document.getElementById('searchEngineSelect');
+  const templateInput = document.getElementById('searchEngineTemplate');
+  const saved = localStorage.getItem('searchEngine') || 'google';
+  const savedTemplate = localStorage.getItem('searchTemplate') || '';
+  
+  if(engineSelect) engineSelect.value = saved;
+  if(templateInput) templateInput.value = savedTemplate || searchEngines[saved] || '';
+  
+  // Update template when selection changes
+  if(engineSelect){
+    engineSelect.addEventListener('change', ()=>{
+      const selected = engineSelect.value;
+      if(selected !== 'custom' && templateInput){
+        templateInput.value = searchEngines[selected] || '';
+      }
+      saveSearchEngine();
+      updateSearchFavicon();
+    });
+  }
+  if(templateInput){
+    templateInput.addEventListener('input', ()=>{
+      saveSearchEngine();
+      updateSearchFavicon();
+    });
+  }
+  
+  updateSearchFavicon();
+}
+
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+
+if(searchForm){
+  searchForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const query = searchInput?.value?.trim();
+    if(!query) return;
+    
+    const template = getSearchTemplate();
+    const url = template.replace('{q}', encodeURIComponent(query));
+    
+    window.open(url, '_blank', 'noopener,noreferrer');
+  });
+}
+
+loadSearchEngine();
+
 function updateGreeting(){
   const el = document.getElementById("greeting");
   if(!el) return;

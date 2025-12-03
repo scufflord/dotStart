@@ -16,7 +16,10 @@
     <div class="page-rest">
     <form id="searchForm" class="search-box" action="#" method="GET" role="search" aria-label="Search">
       <label for="searchInput" class="sr-only">Search</label>
-      <input id="searchInput" type="text" name="q" placeholder="Search..." autocomplete="off" aria-label="Search query" />
+      <div class="search-input-wrapper">
+        <img id="searchEngineFavicon" class="search-favicon" src="" alt="" aria-hidden="true">
+        <input id="searchInput" type="text" name="q" placeholder="Search..." autocomplete="off" aria-label="Search query" />
+      </div>
       <button type="submit" aria-label="Submit search">Go</button>
     </form>
     <div class="top-info">
